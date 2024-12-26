@@ -14,14 +14,20 @@ export const register = async (req, res, next) => {
   }
   const isUser = await User.findOne({ email });
   if (isUser) {
-    return next(res.status(400).json({
+    return next(
+      res.status(400).json({
         success: false,
         message: "User already exist!",
       })
     );
   }
   const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await User.create({name,email,phone,password: hashedPassword,});
+  const user = await User.create({
+    name,
+    email,
+    phone,
+    password: hashedPassword,
+  });
   res.status(200).json({
     success: true,
     message: "User Registered!",
@@ -32,7 +38,8 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return next(res.status(400).json({
+    return next(
+      res.status(400).json({
         success: false,
         message: "Please Fill Full Form!",
       })
@@ -40,7 +47,8 @@ export const login = async (req, res, next) => {
   }
   const user = await User.findOne({ email });
   if (!user) {
-    return next(res.status(404).json({
+    return next(
+      res.status(404).json({
         success: false,
         message: "Invalid Email or Password!",
       })
@@ -49,31 +57,43 @@ export const login = async (req, res, next) => {
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
   if (!isPasswordMatched) {
-    return next(res.status(404).json({
+    return next(
+      res.status(404).json({
         success: false,
-        message: "Invalid Email or Password!",})
+        message: "Invalid Email or Password!",
+      })
     );
   }
   const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES,
   });
-  res.status(200).cookie("token", token, {
+  res
+    .status(200)
+    .cookie("token", token, {
       httpOnly: true,
-      expires: new Date(Date.now() + process.env.COOKIE_EXPIRES * 24 * 60 * 60 * 1000),
-    }).json({
+      expires: new Date(
+        Date.now() + process.env.COOKIE_EXPIRES * 24 * 60 * 60 * 1000
+      ),
+      secure: true,
+      sameSite: "None",
+    })
+    .json({
       success: true,
       message: "User logged in.",
       user,
-      token,});
+      token,
+    });
 };
 
 export const getUser = async (req, res, next) => {
   const user = await User.findById(req.user._id);
   if (!user) {
-    return next(res.status(404).json({
+    return next(
+      res.status(404).json({
         success: false,
         message: "User not Found!",
-      }));
+      })
+    );
   }
   res.status(200).json({
     success: true,
@@ -82,11 +102,16 @@ export const getUser = async (req, res, next) => {
 };
 
 export const logout = async (req, res, next) => {
-    res.status(200).cookie("token", "", {
-        httpOnly: true,
-        expires: new Date(Date.now()),
-    }).json({
-        success: true,
-        message: "User logged out.",
+  res
+    .status(200)
+    .cookie("token", "", {
+      httpOnly: true,
+      expires: new Date(Date.now()),
+      secure: true,
+      sameSite: "None",
     })
-}
+    .json({
+      success: true,
+      message: "User logged out.",
+    });
+};
